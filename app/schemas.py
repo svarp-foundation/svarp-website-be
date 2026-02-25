@@ -141,9 +141,8 @@ class Donation(DonationBase):
     user_id: Optional[str] = None
     created_at: datetime
 
-    created_at: datetime
-
     model_config = ConfigDict(from_attributes=True)
+
 
 # Contact Message Schemas
 class ContactMessageBase(BaseModel):
