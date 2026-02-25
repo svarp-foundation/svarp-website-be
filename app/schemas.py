@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Union
 from datetime import datetime
 
 # User Schemas
@@ -47,6 +47,7 @@ class User(UserBase):
     pincode: Optional[str] = None
     membership: Optional[UserMembership] = None
     transactions: List['Transaction'] = []
+    donations: List['Donation'] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -97,7 +98,7 @@ class PaymentVerify(BaseModel):
     razorpay_signature: str
 
 class PaymentOrderResponse(BaseModel):
-    id: int # Local transaction ID
+    id: Union[int, str] # Local transaction ID
     razorpay_order_id: str
     amount: float
     currency: str
@@ -105,3 +106,23 @@ class PaymentOrderResponse(BaseModel):
     app_name: str # App Name from CPP
     status: str
 
+# Donation Schemas
+class DonationBase(BaseModel):
+    name: str
+    email: EmailStr
+    phone_number: str
+    pan_card: Optional[str] = None
+    amount: float
+    currency: str = "INR"
+
+class DonationCreate(DonationBase):
+    pass
+
+class Donation(DonationBase):
+    id: str
+    status: str
+    payment_id: Optional[str] = None
+    user_id: Optional[int] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

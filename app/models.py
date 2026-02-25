@@ -22,6 +22,7 @@ class User(Base):
 
     membership = relationship("UserMembership", back_populates="user", uselist=False)
     transactions = relationship("Transaction", back_populates="user")
+    donations = relationship("Donation", back_populates="user")
 
 class Membership(Base):
     __tablename__ = "memberships"
@@ -62,3 +63,20 @@ class Transaction(Base):
 
     user = relationship("User", back_populates="transactions")
     plan = relationship("Membership", back_populates="transactions")
+
+class Donation(Base):
+    __tablename__ = "donations"
+
+    id = Column(String, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    phone_number = Column(String, nullable=False)
+    pan_card = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    currency = Column(String, default="INR")
+    status = Column(String, default="pending") # pending, success, failed
+    payment_id = Column(String, nullable=True) # External payment gateway ID (e.g. Razorpay Order ID)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="donations")

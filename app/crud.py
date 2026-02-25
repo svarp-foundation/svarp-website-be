@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
+import secrets
 from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -108,3 +109,25 @@ def update_transaction_status(db: Session, transaction_id: int, status: str):
             db.commit()
 
     return transaction
+
+def create_donation(db: Session, donation: schemas.DonationCreate):
+    donation_id = f"SVARP-DON-{secrets.token_hex(4).upper()}"
+    db_donation = models.Donation(
+        id=donation_id,
+        **donation.dict(),
+        status="pending"
+    )
+    db.add(db_donation)
+    db.commit()
+    db.refresh(db_donation)
+    return db_donation
+
+def update_donation_status(db: Session, donation_id: str, status: str):
+    donation = db.query(models.Donation).filter(models.Donation.id == donation_id).first()
+    if not donation:
+        return None
+    
+    donation.status = status
+    db.commit()
+    db.refresh(donation)
+    return donation
