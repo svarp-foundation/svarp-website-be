@@ -14,8 +14,8 @@ class UserLogin(UserBase):
     password: str
 
 class UserMembership(BaseModel):
-    id: int
-    membership_id: int
+    id: str
+    membership_id: str
     start_date: datetime
     end_date: Optional[datetime]
     is_active: bool
@@ -34,7 +34,7 @@ class UserUpdate(BaseModel):
     pincode: Optional[str] = None
 
 class User(UserBase):
-    id: int
+    id: str
     is_active: bool
     role: str
     full_name: Optional[str] = None
@@ -70,13 +70,13 @@ class MembershipCreate(MembershipBase):
     pass
 
 class Membership(MembershipBase):
-    id: int
+    id: str
 
     model_config = ConfigDict(from_attributes=True)
 
 # Transaction Schemas
 class TransactionBase(BaseModel):
-    membership_id: int
+    membership_id: str
     amount: float
     currency: str = "INR"
     payment_id: Optional[str] = None
@@ -85,8 +85,8 @@ class TransactionCreate(TransactionBase):
     pass
 
 class Transaction(TransactionBase):
-    id: int
-    user_id: int
+    id: str
+    user_id: str
     status: str
     created_at: datetime
 
@@ -98,7 +98,7 @@ class PaymentVerify(BaseModel):
     razorpay_signature: str
 
 class PaymentOrderResponse(BaseModel):
-    id: Union[int, str] # Local transaction ID
+    id: str # Local transaction ID
     razorpay_order_id: str
     amount: float
     currency: str
@@ -122,7 +122,7 @@ class Donation(DonationBase):
     id: str
     status: str
     payment_id: Optional[str] = None
-    user_id: Optional[int] = None
+    user_id: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

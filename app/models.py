@@ -1,12 +1,17 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+import string
+import random
 from .database import Base
+
+def generate_id():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(8), primary_key=True, index=True, default=generate_id)
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
@@ -27,7 +32,7 @@ class User(Base):
 class Membership(Base):
     __tablename__ = "memberships"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(8), primary_key=True, index=True, default=generate_id)
     name = Column(String, unique=True)
     price = Column(Float)
     features = Column(Text) # JSON string or comma-separated list
@@ -39,9 +44,9 @@ class Membership(Base):
 class UserMembership(Base):
     __tablename__ = "user_memberships"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
-    membership_id = Column(Integer, ForeignKey("memberships.id"))
+    id = Column(String(8), primary_key=True, index=True, default=generate_id)
+    user_id = Column(String(8), ForeignKey("users.id"), unique=True)
+    membership_id = Column(String(8), ForeignKey("memberships.id"))
     start_date = Column(DateTime(timezone=True), server_default=func.now())
     end_date = Column(DateTime(timezone=True))
     is_active = Column(Boolean, default=True)
@@ -52,9 +57,9 @@ class UserMembership(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    membership_id = Column(Integer, ForeignKey("memberships.id"))
+    id = Column(String(8), primary_key=True, index=True, default=generate_id)
+    user_id = Column(String(8), ForeignKey("users.id"))
+    membership_id = Column(String(8), ForeignKey("memberships.id"))
     amount = Column(Float)
     currency = Column(String, default="INR")
     status = Column(String, default="pending") # pending, success, failed
@@ -67,7 +72,7 @@ class Transaction(Base):
 class Donation(Base):
     __tablename__ = "donations"
 
-    id = Column(String, primary_key=True, index=True)
+    id = Column(String(8), primary_key=True, index=True, default=generate_id)
     name = Column(String, nullable=False)
     email = Column(String, nullable=False)
     phone_number = Column(String, nullable=False)
@@ -76,7 +81,7 @@ class Donation(Base):
     currency = Column(String, default="INR")
     status = Column(String, default="pending") # pending, success, failed
     payment_id = Column(String, nullable=True) # External payment gateway ID (e.g. Razorpay Order ID)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(String(8), ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="donations")

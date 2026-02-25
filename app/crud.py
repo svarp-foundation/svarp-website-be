@@ -11,7 +11,7 @@ def get_password_hash(password):
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
-def get_user(db: Session, user_id: int):
+def get_user(db: Session, user_id: str):
     return db.query(models.User).filter(models.User.id == user_id).first()
 
 def get_user_by_email(db: Session, email: str):
@@ -29,7 +29,7 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(db_user)
     return db_user
 
-def update_user(db: Session, user_id: int, user_update: schemas.UserUpdate):
+def update_user(db: Session, user_id: str, user_update: schemas.UserUpdate):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not db_user:
         return None
@@ -52,7 +52,7 @@ def create_membership(db: Session, membership: schemas.MembershipCreate):
     db.refresh(db_membership)
     return db_membership
 
-def create_transaction(db: Session, transaction: schemas.TransactionCreate, user_id: int):
+def create_transaction(db: Session, transaction: schemas.TransactionCreate, user_id: str):
     db_transaction = models.Transaction(
         **transaction.dict(),
         user_id=user_id,
@@ -63,7 +63,7 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate, user
     db.refresh(db_transaction)
     return db_transaction
 
-def update_transaction_status(db: Session, transaction_id: int, status: str):
+def update_transaction_status(db: Session, transaction_id: str, status: str):
     transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
     if not transaction:
         return None

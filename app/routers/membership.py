@@ -135,7 +135,7 @@ def verify_payment(
 
 @router.put("/transactions/{transaction_id}", response_model=schemas.Transaction)
 def update_transaction(
-    transaction_id: int,
+    transaction_id: str,
     status: str,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(get_current_user)
