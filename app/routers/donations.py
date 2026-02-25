@@ -62,7 +62,7 @@ def create_donation_order(
         amount=donation.amount, 
         currency=donation.currency,
         key_id=order_data.get("key_id"),
-        app_name="SVARP Donation",
+        app_name="SVARP FOUNDATION",
         status=db_donation.status
     )
 

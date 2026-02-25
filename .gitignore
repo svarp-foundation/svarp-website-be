@@ -101,3 +101,8 @@ svarp.db
 
 
 *.db
+
+uploads/*.pdf
+uploads/*.jpg
+uploads/*.jpeg
+uploads/*.png

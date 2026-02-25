@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional, List, Union
-from datetime import datetime
+from datetime import datetime, date
 
 # User Schemas
 class UserBase(BaseModel):
@@ -32,6 +32,14 @@ class UserUpdate(BaseModel):
     city: Optional[str] = None
     state: Optional[str] = None
     pincode: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    government_id_type: Optional[str] = None
+    government_id_number: Optional[str] = None
+    government_id_path: Optional[str] = None
+    is_student: Optional[bool] = None
+    student_id_path: Optional[str] = None
+    profile_picture_path: Optional[str] = None
+    gst_number: Optional[str] = None
 
 class User(UserBase):
     id: str
@@ -45,6 +53,14 @@ class User(UserBase):
     city: Optional[str] = None
     state: Optional[str] = None
     pincode: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    government_id_type: Optional[str] = None
+    government_id_number: Optional[str] = None
+    government_id_path: Optional[str] = None
+    is_student: Optional[bool] = None
+    student_id_path: Optional[str] = None
+    profile_picture_path: Optional[str] = None
+    gst_number: Optional[str] = None
     membership: Optional[UserMembership] = None
     transactions: List['Transaction'] = []
     donations: List['Donation'] = []
@@ -123,6 +139,23 @@ class Donation(DonationBase):
     status: str
     payment_id: Optional[str] = None
     user_id: Optional[str] = None
+    created_at: datetime
+
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+# Contact Message Schemas
+class ContactMessageBase(BaseModel):
+    name: str
+    email: EmailStr
+    message: str
+
+class ContactMessageCreate(ContactMessageBase):
+    pass
+
+class ContactMessage(ContactMessageBase):
+    id: str
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

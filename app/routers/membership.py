@@ -48,13 +48,19 @@ def subscribe_to_membership(
             raise HTTPException(status_code=400, detail="You cannot downgrade your membership to a lower-tier plan.")
 
     # 2. Call CPP to create order
+    # Calculate total amount with tax
+    tax_rate = float(os.getenv("TAX_RATE", 18))
+    calculated_tax = (requested_plan.price * tax_rate) / 100
+    final_amount = requested_plan.price + calculated_tax
+    transaction.amount = final_amount
+
     headers = {
         "x-app-key": CPP_APP_KEY,
         "x-app-secret": CPP_APP_SECRET
     }
     payload = {
         "user_id": str(current_user.id),
-        "amount": int(transaction.amount * 100) if transaction.currency == "INR" else int(transaction.amount),
+        "amount": int(final_amount * 100) if transaction.currency == "INR" else int(final_amount),
         "currency": transaction.currency,
         "media_type": "application/json",
         "plan_type": "membership",

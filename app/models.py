@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime, Float
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime, Float, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import string
@@ -24,6 +24,16 @@ class User(Base):
     city = Column(String, nullable=True)
     state = Column(String, nullable=True)
     pincode = Column(String, nullable=True)
+    
+    # New fields for Membership Form
+    date_of_birth = Column(Date, nullable=True)
+    government_id_type = Column(String, nullable=True) # PAN, Aadhaar, Passport
+    government_id_number = Column(String, nullable=True)
+    government_id_path = Column(String, nullable=True)
+    is_student = Column(Boolean, default=False)
+    student_id_path = Column(String, nullable=True)
+    profile_picture_path = Column(String, nullable=True)
+    gst_number = Column(String, nullable=True)
 
     membership = relationship("UserMembership", back_populates="user", uselist=False)
     transactions = relationship("Transaction", back_populates="user")
@@ -76,7 +86,7 @@ class Donation(Base):
     name = Column(String, nullable=False)
     email = Column(String, nullable=False)
     phone_number = Column(String, nullable=False)
-    pan_card = Column(String, nullable=False)
+    pan_card = Column(String, nullable=True)
     amount = Column(Float, nullable=False)
     currency = Column(String, default="INR")
     status = Column(String, default="pending") # pending, success, failed
@@ -85,3 +95,12 @@ class Donation(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="donations")
+
+class ContactMessage(Base):
+    __tablename__ = "contact_messages"
+
+    id = Column(String(8), primary_key=True, index=True, default=generate_id)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
