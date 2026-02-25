@@ -106,9 +106,6 @@ def startup_event():
     create_admin_user()
     create_membership_plans()
 
-
-
-
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
@@ -133,6 +130,7 @@ app.include_router(upload.router)
 app.include_router(contact.router)
 app.include_router(admin.router)
 app.include_router(jobs.router)
+
 
 @app.get("/")
 def read_root():

@@ -133,3 +133,4 @@ class JobApplication(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     job = relationship("Job", back_populates="applications")
+
