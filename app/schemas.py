@@ -179,6 +179,7 @@ class PaymentReadiness(BaseModel):
 
 class UserVerificationResponse(BaseModel):
     found: bool
+    phone_number: Optional[str] = None
     profile_picture_path: Optional[str] = None
     membership: Optional[UserMembership] = None
     documents: Optional[UserDocuments] = None
