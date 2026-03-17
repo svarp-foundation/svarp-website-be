@@ -161,21 +161,6 @@ class ContactMessage(ContactMessageBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# Contact Message Schemas
-class ContactMessageBase(BaseModel):
-    name: str
-    email: EmailStr
-    message: str
-
-class ContactMessageCreate(ContactMessageBase):
-    pass
-
-class ContactMessage(ContactMessageBase):
-    id: str
-    created_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
-
 # User Verification Schemas
 class UserDocuments(BaseModel):
     has_government_id: bool = False
@@ -273,3 +258,4 @@ class JobApplication(JobApplicationBase):
     job: Optional[Job] = None
 
     model_config = ConfigDict(from_attributes=True)
+
