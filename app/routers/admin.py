@@ -88,6 +88,7 @@ def verify_user_by_email(
 
     return schemas.UserVerificationResponse(
         found=True,
+        phone_number=user.phone_number,
         profile_picture_path=user.profile_picture_path,
         membership=user.membership,
         documents=documents,
