@@ -159,3 +159,27 @@ class ContactMessage(ContactMessageBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+# User Verification Schemas
+class UserDocuments(BaseModel):
+    has_government_id: bool = False
+    has_student_id: bool = False
+    has_profile_picture: bool = False
+
+class PaymentReadiness(BaseModel):
+    ready: bool = False
+    has_full_name: bool = False
+    has_phone_number: bool = False
+    has_pan_card: bool = False
+    has_address: bool = False
+    has_city: bool = False
+    has_state: bool = False
+    has_government_id_doc: bool = False
+    has_profile_picture_doc: bool = False
+
+class UserVerificationResponse(BaseModel):
+    found: bool
+    profile_picture_path: Optional[str] = None
+    membership: Optional[UserMembership] = None
+    documents: Optional[UserDocuments] = None
+    payment_readiness: Optional[PaymentReadiness] = None
