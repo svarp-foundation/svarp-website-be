@@ -184,3 +184,27 @@ class UserVerificationResponse(BaseModel):
     membership: Optional[UserMembership] = None
     documents: Optional[UserDocuments] = None
     payment_readiness: Optional[PaymentReadiness] = None
+
+# Admin Specific Schemas
+class AdminDashboardStats(BaseModel):
+    total_users: int
+    active_users: int
+    total_revenue: float
+    pending_verifications: int
+    monthly_revenue: List[dict] # {month: str, revenue: float}
+    monthly_users: List[dict] # {month: str, count: int}
+
+class AdminUserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    is_active: Optional[bool] = None
+    role: Optional[str] = None
+    membership_plan_id: Optional[str] = None
+
+class VerificationReview(BaseModel):
+    status: str # approved, rejected
+    reason: Optional[str] = None
+
+class MembershipAssignment(BaseModel):
+    user_id: str
+    membership_id: str
+    duration_days: int = 365
