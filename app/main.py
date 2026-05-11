@@ -5,8 +5,9 @@ from .database import engine, Base
 from .routers import auth, membership, donations, upload, contact, admin
 import os
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+
+# Create database tables is now handled by Alembic migrations
+# Base.metadata.create_all(bind=engine)
 
 def create_admin_user():
     from .database import SessionLocal
