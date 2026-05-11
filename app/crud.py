@@ -131,3 +131,65 @@ def update_donation_status(db: Session, donation_id: str, status: str):
     db.commit()
     db.refresh(donation)
     return donation
+
+# Job CRUD
+def get_jobs(db: Session, skip: int = 0, limit: int = 100, active_only: bool = False):
+    query = db.query(models.Job)
+    if active_only:
+        query = query.filter(models.Job.is_active == True)
+    return query.offset(skip).limit(limit).all()
+
+def get_job(db: Session, job_id: str):
+    return db.query(models.Job).filter(models.Job.id == job_id).first()
+
+def create_job(db: Session, job: schemas.JobCreate):
+    db_job = models.Job(**job.dict())
+    db.add(db_job)
+    db.commit()
+    db.refresh(db_job)
+    return db_job
+
+def update_job(db: Session, job_id: str, job_update: schemas.JobUpdate):
+    db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
+    if not db_job:
+        return None
+    for var, value in vars(job_update).items():
+        if value is not None:
+            setattr(db_job, var, value)
+    db.commit()
+    db.refresh(db_job)
+    return db_job
+
+def delete_job(db: Session, job_id: str):
+    db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
+    if db_job:
+        db.delete(db_job)
+        db.commit()
+        return True
+    return False
+
+# Job Application CRUD
+def create_job_application(db: Session, application: schemas.JobApplicationCreate, resume_path: str):
+    db_application = models.JobApplication(
+        **application.dict(),
+        resume_path=resume_path
+    )
+    db.add(db_application)
+    db.commit()
+    db.refresh(db_application)
+    return db_application
+
+def get_job_applications(db: Session, skip: int = 0, limit: int = 100, job_id: str = None):
+    query = db.query(models.JobApplication)
+    if job_id:
+        query = query.filter(models.JobApplication.job_id == job_id)
+    return query.offset(skip).limit(limit).all()
+
+def update_job_application_status(db: Session, application_id: str, status: str):
+    db_application = db.query(models.JobApplication).filter(models.JobApplication.id == application_id).first()
+    if not db_application:
+        return None
+    db_application.status = status
+    db.commit()
+    db.refresh(db_application)
+    return db_application

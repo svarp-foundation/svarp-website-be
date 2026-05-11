@@ -104,3 +104,32 @@ class ContactMessage(Base):
     email = Column(String, nullable=False)
     message = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Job(Base):
+    __tablename__ = "jobs"
+
+    id = Column(String(8), primary_key=True, index=True, default=generate_id)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    location = Column(String, nullable=False)
+    job_type = Column(String, nullable=False) # Full-time, Part-time, Internship, Freelance
+    salary_range = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    applications = relationship("JobApplication", back_populates="job")
+
+class JobApplication(Base):
+    __tablename__ = "job_applications"
+
+    id = Column(String(8), primary_key=True, index=True, default=generate_id)
+    job_id = Column(String(8), ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True)
+    full_name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    phone = Column(String, nullable=False)
+    resume_path = Column(String, nullable=False)
+    cover_letter = Column(Text, nullable=True)
+    status = Column(String, default="pending") # pending, reviewed, interviewed, rejected, hired
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    job = relationship("Job", back_populates="applications")

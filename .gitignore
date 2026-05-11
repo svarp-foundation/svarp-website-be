@@ -106,3 +106,4 @@ uploads/*.pdf
 uploads/*.jpg
 uploads/*.jpeg
 uploads/*.png
+uploads/resumes/*

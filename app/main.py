@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .database import engine, Base
-from .routers import auth, membership, donations, upload, contact, admin
+from .routers import auth, membership, donations, upload, contact, admin, jobs
 import os
 
 
@@ -66,6 +66,7 @@ app.include_router(donations.router)
 app.include_router(upload.router)
 app.include_router(contact.router)
 app.include_router(admin.router)
+app.include_router(jobs.router)
 
 @app.get("/")
 def read_root():

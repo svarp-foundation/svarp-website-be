@@ -208,3 +208,52 @@ class MembershipAssignment(BaseModel):
     user_id: str
     membership_id: str
     duration_days: int = 365
+
+# Job Schemas
+class JobBase(BaseModel):
+    title: str
+    description: str
+    location: str
+    job_type: str
+    salary_range: Optional[str] = None
+    is_active: bool = True
+
+class JobCreate(JobBase):
+    pass
+
+class JobUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    location: Optional[str] = None
+    job_type: Optional[str] = None
+    salary_range: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class Job(JobBase):
+    id: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+# Job Application Schemas
+class JobApplicationBase(BaseModel):
+    job_id: str
+    full_name: str
+    email: EmailStr
+    phone: str
+    cover_letter: Optional[str] = None
+
+class JobApplicationCreate(JobApplicationBase):
+    pass
+
+class JobApplicationUpdate(BaseModel):
+    status: str
+
+class JobApplication(JobApplicationBase):
+    id: str
+    resume_path: str
+    status: str
+    created_at: datetime
+    job: Optional[Job] = None
+
+    model_config = ConfigDict(from_attributes=True)
