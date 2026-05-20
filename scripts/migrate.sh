@@ -4,6 +4,7 @@
 # Usage: 
 #   ./scripts/migrate.sh create "migration message"  - To create a new migration
 #   ./scripts/migrate.sh apply                        - To apply migrations to the database
+#   ./scripts/migrate.sh stamp                        - To stamp the database with the current head
 
 set -e
 

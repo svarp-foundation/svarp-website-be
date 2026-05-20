@@ -14,7 +14,7 @@ engine = create_engine(
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData 
 from sqlalchemy.ext.declarative import declarative_base
 
 naming_convention = {
