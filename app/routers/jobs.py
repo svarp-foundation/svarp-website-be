@@ -1,7 +1,7 @@
 import os
 import shutil
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Header
 from sqlalchemy.orm import Session
 from .. import crud, schemas, models
 from ..database import get_db
@@ -18,8 +18,26 @@ if not os.path.exists(UPLOAD_DIR):
 
 # Public Endpoints
 @router.get("/", response_model=List[schemas.Job])
-def list_active_jobs(db: Session = Depends(get_db)):
-    return crud.get_jobs(db, active_only=True)
+def list_active_jobs(
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    active_only = True
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+        try:
+            from jose import jwt
+            from .auth import SECRET_KEY, ALGORITHM
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            email: str = payload.get("sub")
+            if email:
+                user = crud.get_user_by_email(db, email=email)
+                if user and user.role == "admin":
+                    active_only = False
+        except Exception:
+            pass
+            
+    return crud.get_jobs(db, active_only=active_only)
 
 @router.get("/{job_id}", response_model=schemas.Job)
 def get_job_details(job_id: str, db: Session = Depends(get_db)):
