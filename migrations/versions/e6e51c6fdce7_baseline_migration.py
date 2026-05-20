@@ -1,8 +1,8 @@
-"""Initial migration
+"""baseline_migration
 
-Revision ID: bee138e6ec46
+Revision ID: e6e51c6fdce7
 Revises: 
-Create Date: 2026-05-11 11:41:47.719198
+Create Date: 2026-05-20 13:03:15.893293
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'bee138e6ec46'
+revision: str = 'e6e51c6fdce7'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -27,10 +27,24 @@ def upgrade() -> None:
     sa.Column('email', sa.String(), nullable=False),
     sa.Column('message', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_contact_messages'))
     )
     with op.batch_alter_table('contact_messages', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_contact_messages_id'), ['id'], unique=False)
+
+    op.create_table('jobs',
+    sa.Column('id', sa.String(length=8), nullable=False),
+    sa.Column('title', sa.String(), nullable=False),
+    sa.Column('description', sa.Text(), nullable=False),
+    sa.Column('location', sa.String(), nullable=False),
+    sa.Column('job_type', sa.String(), nullable=False),
+    sa.Column('salary_range', sa.String(), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_jobs'))
+    )
+    with op.batch_alter_table('jobs', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_jobs_id'), ['id'], unique=False)
 
     op.create_table('memberships',
     sa.Column('id', sa.String(length=8), nullable=False),
@@ -38,8 +52,8 @@ def upgrade() -> None:
     sa.Column('price', sa.Float(), nullable=True),
     sa.Column('features', sa.Text(), nullable=True),
     sa.Column('duration_days', sa.Integer(), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('name')
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_memberships')),
+    sa.UniqueConstraint('name', name=op.f('uq_memberships_name'))
     )
     with op.batch_alter_table('memberships', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_memberships_id'), ['id'], unique=False)
@@ -66,7 +80,7 @@ def upgrade() -> None:
     sa.Column('student_id_path', sa.String(), nullable=True),
     sa.Column('profile_picture_path', sa.String(), nullable=True),
     sa.Column('gst_number', sa.String(), nullable=True),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_users'))
     )
     with op.batch_alter_table('users', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_users_email'), ['email'], unique=True)
@@ -84,11 +98,27 @@ def upgrade() -> None:
     sa.Column('payment_id', sa.String(), nullable=True),
     sa.Column('user_id', sa.String(length=8), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_donations_user_id_users')),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_donations'))
     )
     with op.batch_alter_table('donations', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_donations_id'), ['id'], unique=False)
+
+    op.create_table('job_applications',
+    sa.Column('id', sa.String(length=8), nullable=False),
+    sa.Column('job_id', sa.String(length=8), nullable=True),
+    sa.Column('full_name', sa.String(), nullable=False),
+    sa.Column('email', sa.String(), nullable=False),
+    sa.Column('phone', sa.String(), nullable=False),
+    sa.Column('resume_path', sa.String(), nullable=False),
+    sa.Column('cover_letter', sa.Text(), nullable=True),
+    sa.Column('status', sa.String(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.ForeignKeyConstraint(['job_id'], ['jobs.id'], name=op.f('fk_job_applications_job_id_jobs'), ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_job_applications'))
+    )
+    with op.batch_alter_table('job_applications', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_job_applications_id'), ['id'], unique=False)
 
     op.create_table('transactions',
     sa.Column('id', sa.String(length=8), nullable=False),
@@ -99,9 +129,9 @@ def upgrade() -> None:
     sa.Column('status', sa.String(), nullable=True),
     sa.Column('payment_id', sa.String(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
-    sa.ForeignKeyConstraint(['membership_id'], ['memberships.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.ForeignKeyConstraint(['membership_id'], ['memberships.id'], name=op.f('fk_transactions_membership_id_memberships')),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_transactions_user_id_users')),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_transactions'))
     )
     with op.batch_alter_table('transactions', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_transactions_id'), ['id'], unique=False)
@@ -113,10 +143,10 @@ def upgrade() -> None:
     sa.Column('start_date', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
     sa.Column('end_date', sa.DateTime(timezone=True), nullable=True),
     sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.ForeignKeyConstraint(['membership_id'], ['memberships.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('user_id')
+    sa.ForeignKeyConstraint(['membership_id'], ['memberships.id'], name=op.f('fk_user_memberships_membership_id_memberships')),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_user_memberships_user_id_users')),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_user_memberships')),
+    sa.UniqueConstraint('user_id', name=op.f('uq_user_memberships_user_id'))
     )
     with op.batch_alter_table('user_memberships', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_user_memberships_id'), ['id'], unique=False)
@@ -135,6 +165,10 @@ def downgrade() -> None:
         batch_op.drop_index(batch_op.f('ix_transactions_id'))
 
     op.drop_table('transactions')
+    with op.batch_alter_table('job_applications', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_job_applications_id'))
+
+    op.drop_table('job_applications')
     with op.batch_alter_table('donations', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_donations_id'))
 
@@ -148,6 +182,10 @@ def downgrade() -> None:
         batch_op.drop_index(batch_op.f('ix_memberships_id'))
 
     op.drop_table('memberships')
+    with op.batch_alter_table('jobs', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_jobs_id'))
+
+    op.drop_table('jobs')
     with op.batch_alter_table('contact_messages', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_contact_messages_id'))
 

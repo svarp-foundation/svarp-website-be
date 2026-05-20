@@ -30,7 +30,7 @@ if [ "$COMMAND" == "create" ]; then
     alembic revision --autogenerate -m "$MESSAGE"
 elif [ "$COMMAND" == "apply" ]; then
     echo "Applying migrations to the database..."
-    alembic upgrade head
+    alembic upgrade heads
 elif [ "$COMMAND" == "stamp" ]; then
     echo "Stamping the database with the current head..."
     alembic stamp head
