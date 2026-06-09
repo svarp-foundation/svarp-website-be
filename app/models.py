@@ -47,6 +47,8 @@ class Membership(Base):
     price = Column(Float)
     features = Column(Text) # JSON string or comma-separated list
     duration_days = Column(Integer) # 30 for monthly, 365 for yearly
+    description = Column(String, nullable=True)
+    highlight = Column(Boolean, default=False)
 
     user_memberships = relationship("UserMembership", back_populates="plan")
     transactions = relationship("Transaction", back_populates="plan")

@@ -81,9 +81,19 @@ class MembershipBase(BaseModel):
     price: float
     features: str
     duration_days: Optional[int] = None
+    description: Optional[str] = None
+    highlight: Optional[bool] = False
 
 class MembershipCreate(MembershipBase):
     pass
+
+class MembershipUpdate(BaseModel):
+    name: Optional[str] = None
+    price: Optional[float] = None
+    features: Optional[str] = None
+    duration_days: Optional[int] = None
+    description: Optional[str] = None
+    highlight: Optional[bool] = None
 
 class Membership(MembershipBase):
     id: str

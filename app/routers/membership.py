@@ -154,3 +154,25 @@ def update_transaction(
     if not updated_transaction:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return updated_transaction
+
+@router.put("/{membership_id}", response_model=schemas.Membership)
+def update_membership(
+    membership_id: str,
+    membership_update: schemas.MembershipUpdate,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+         raise HTTPException(status_code=403, detail="Not authorized")
+         
+    db_membership = db.query(models.Membership).filter(models.Membership.id == membership_id).first()
+    if not db_membership:
+        raise HTTPException(status_code=404, detail="Membership plan not found")
+        
+    update_data = membership_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_membership, key, value)
+        
+    db.commit()
+    db.refresh(db_membership)
+    return db_membership
