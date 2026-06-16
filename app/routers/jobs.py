@@ -62,9 +62,13 @@ async def apply_for_job(
         raise HTTPException(status_code=404, detail="Job not found or inactive")
 
     # Save resume
+    import uuid
     file_extension = os.path.splitext(resume.filename)[1]
-    file_name = f"{job_id}_{phone}_{resume.filename}"
-    file_path = os.path.join(UPLOAD_DIR, file_name)
+    if file_extension.lower() not in [".pdf", ".docx", ".doc"]:
+        raise HTTPException(status_code=400, detail="Only PDF and Word documents are allowed.")
+        
+    unique_filename = f"{job_id}_{phone}_{uuid.uuid4()}{file_extension}"
+    file_path = os.path.join(UPLOAD_DIR, unique_filename)
     
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(resume.file, buffer)

@@ -16,6 +16,7 @@ class User(Base):
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
     role = Column(String, default="consumer") # consumer, admin
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     full_name = Column(String, nullable=True)
     phone_number = Column(String, nullable=True)
     pan_card = Column(String, nullable=True)
@@ -34,6 +35,8 @@ class User(Base):
     student_id_path = Column(String, nullable=True)
     profile_picture_path = Column(String, nullable=True)
     gst_number = Column(String, nullable=True)
+    verification_status = Column(String, default="unverified") # unverified, pending, approved, rejected
+    verification_reason = Column(String, nullable=True)
 
     membership = relationship("UserMembership", back_populates="user", uselist=False)
     transactions = relationship("Transaction", back_populates="user")
@@ -80,6 +83,10 @@ class Transaction(Base):
 
     user = relationship("User", back_populates="transactions")
     plan = relationship("Membership", back_populates="transactions")
+
+    @property
+    def user_email(self):
+        return self.user.email if self.user else None
 
 class Donation(Base):
     __tablename__ = "donations"

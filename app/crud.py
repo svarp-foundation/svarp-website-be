@@ -37,6 +37,9 @@ def update_user(db: Session, user_id: str, user_update: schemas.UserUpdate):
     update_data = user_update.dict(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_user, key, value)
+        
+    if db_user.government_id_path and db_user.verification_status in [None, "unverified", "rejected"]:
+        db_user.verification_status = "pending"
     
     db.commit()
     db.refresh(db_user)
@@ -76,12 +79,11 @@ def update_transaction_status(db: Session, transaction_id: str, status: str):
         # Activate Membership Logic
         from datetime import datetime, timedelta
         
-    # Get plan details for duration
-    plan = db.query(models.Membership).filter(models.Membership.id == transaction.membership_id).first()
-    if not plan:
-        print(f"ERROR: Membership plan {transaction.membership_id} not found for transaction {transaction_id}. UserMembership NOT created.")
-    
-    if plan:
+        # Get plan details for duration
+        plan = db.query(models.Membership).filter(models.Membership.id == transaction.membership_id).first()
+        if not plan:
+            print(f"ERROR: Membership plan {transaction.membership_id} not found for transaction {transaction_id}. UserMembership NOT created.")
+        else:
             duration = plan.duration_days
             start_date = datetime.now()
             end_date = start_date + timedelta(days=duration) if duration else None

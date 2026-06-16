@@ -112,6 +112,7 @@ def get_admin_stats(
     
     pending_verifications = db.query(models.User).filter(
         models.User.government_id_path != None,
+        models.User.verification_status == "pending"
     ).count()
 
     # Monthly revenue trends
@@ -123,7 +124,12 @@ def get_admin_stats(
     monthly_rev_list = [{"month": r.month, "revenue": r.revenue} for r in monthly_revenue_data]
 
     # Monthly users trends
-    monthly_users_list = []
+    monthly_users_data = db.query(
+        func.strftime('%Y-%m', models.User.created_at).label('month'),
+        func.count(models.User.id).label('count')
+    ).filter(models.User.created_at != None).group_by('month').order_by('month').all()
+    
+    monthly_users_list = [{"month": r.month, "count": r.count} for r in monthly_users_data]
     
     return schemas.AdminDashboardStats(
         total_users=total_users,
@@ -321,14 +327,16 @@ def export_payments(
     )
 
 
-# 5. Document Verification
 @router.get("/verifications", response_model=List[schemas.User])
 def list_verifications(
     status: str = "pending",
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
-    return db.query(models.User).filter(models.User.government_id_path != None).all()
+    return db.query(models.User).filter(
+        models.User.government_id_path != None,
+        models.User.verification_status == status
+    ).all()
 
 
 @router.post("/verifications/{user_id}/review")
@@ -341,5 +349,10 @@ def review_verification(
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
+        
+    db_user.verification_status = review.status
+    db_user.verification_reason = review.reason if review.status == "rejected" else None
+    db.commit()
+    db.refresh(db_user)
         
     return {"status": "success", "message": f"User verification {review.status}"}

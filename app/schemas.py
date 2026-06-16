@@ -40,11 +40,14 @@ class UserUpdate(BaseModel):
     student_id_path: Optional[str] = None
     profile_picture_path: Optional[str] = None
     gst_number: Optional[str] = None
+    verification_status: Optional[str] = None
+    verification_reason: Optional[str] = None
 
 class User(UserBase):
     id: str
     is_active: bool
     role: str
+    created_at: Optional[datetime] = None
     full_name: Optional[str] = None
     phone_number: Optional[str] = None
     pan_card: Optional[str] = None
@@ -61,6 +64,8 @@ class User(UserBase):
     student_id_path: Optional[str] = None
     profile_picture_path: Optional[str] = None
     gst_number: Optional[str] = None
+    verification_status: Optional[str] = "unverified"
+    verification_reason: Optional[str] = None
     membership: Optional[UserMembership] = None
     transactions: List['Transaction'] = []
     donations: List['Donation'] = []
@@ -115,6 +120,7 @@ class Transaction(TransactionBase):
     user_id: str
     status: str
     created_at: datetime
+    user_email: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

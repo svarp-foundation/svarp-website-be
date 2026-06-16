@@ -32,7 +32,7 @@ async def upload_document(
     file.file.seek(0)
     
     if file_size > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File size must be at least 2MB.")
+        raise HTTPException(status_code=400, detail="File size must not exceed 2MB.")
         
     unique_filename = f"{uuid.uuid4()}.{ext}"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
