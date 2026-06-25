@@ -275,3 +275,15 @@ class JobApplication(JobApplicationBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class BulkImportError(BaseModel):
+    row: int
+    email: Optional[str] = None
+    error: str
+
+class BulkImportResponse(BaseModel):
+    successful_count: int
+    failed_count: int
+    errors: List[BulkImportError]
+
+

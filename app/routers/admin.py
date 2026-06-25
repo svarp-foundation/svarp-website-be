@@ -3,7 +3,7 @@ import csv
 import io
 from datetime import datetime, timedelta
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, HTTPException, Response, status, Header, Security
+from fastapi import APIRouter, Depends, Query, HTTPException, Response, status, Header, Security, UploadFile, File
 from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
@@ -356,3 +356,128 @@ def review_verification(
     db.refresh(db_user)
         
     return {"status": "success", "message": f"User verification {review.status}"}
+
+
+@router.post("/users/bulk-import", response_model=schemas.BulkImportResponse)
+async def bulk_import_users(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    """
+    Import users in bulk via a CSV file.
+    All imported users will have their role set to 'consumer' by default.
+    Skipped rows are returned with detailed error messages.
+    """
+    import re
+    contents = await file.read()
+    try:
+        decoded = contents.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file encoding. Please upload a UTF-8 encoded CSV file."
+        )
+    
+    f = io.StringIO(decoded)
+    reader = csv.reader(f)
+    
+    try:
+        headers = next(reader)
+    except StopIteration:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="CSV file is empty."
+        )
+    
+    email_idx = -1
+    password_idx = -1
+    fullname_idx = -1
+    phone_idx = -1
+    
+    for i, h in enumerate(headers):
+        h_norm = h.strip().lower().replace("_", "").replace(" ", "").replace("-", "")
+        if h_norm in ("email", "username", "emailaddress"):
+            email_idx = i
+        elif h_norm in ("password", "pass"):
+            password_idx = i
+        elif h_norm in ("fullname", "name", "namefull", "usernamefull"):
+            fullname_idx = i
+        elif h_norm in ("phone", "phonenumber", "mobile", "mobilenumber", "contact", "contactnumber"):
+            phone_idx = i
+
+    if email_idx == -1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="CSV must contain an 'email' column."
+        )
+    if password_idx == -1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="CSV must contain a 'password' column."
+        )
+
+    success_count = 0
+    errors = []
+    processed_emails = set()
+    email_regex = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+    
+    for row_num, row in enumerate(reader, start=2):
+        if not row or all(not cell.strip() for cell in row):
+            continue
+        
+        email = row[email_idx].strip() if email_idx < len(row) else ""
+        password = row[password_idx].strip() if password_idx < len(row) else ""
+        fullname = row[fullname_idx].strip() if (fullname_idx != -1 and fullname_idx < len(row)) else None
+        phone = row[phone_idx].strip() if (phone_idx != -1 and phone_idx < len(row)) else None
+        
+        if not email:
+            errors.append(schemas.BulkImportError(row=row_num, email=None, error="Email is required."))
+            continue
+            
+        if not password:
+            errors.append(schemas.BulkImportError(row=row_num, email=email, error="Password is required."))
+            continue
+            
+        if len(password) < 6:
+            errors.append(schemas.BulkImportError(row=row_num, email=email, error="Password must be at least 6 characters long."))
+            continue
+            
+        if not re.match(email_regex, email):
+            errors.append(schemas.BulkImportError(row=row_num, email=email, error="Invalid email format."))
+            continue
+            
+        if email.lower() in processed_emails:
+            errors.append(schemas.BulkImportError(row=row_num, email=email, error="Duplicate email in the CSV file."))
+            continue
+            
+        existing_user = db.query(models.User).filter(models.User.email == email).first()
+        if existing_user:
+            errors.append(schemas.BulkImportError(row=row_num, email=email, error="Email already registered."))
+            continue
+            
+        try:
+            hashed_pw = crud.get_password_hash(password)
+            db_user = models.User(
+                email=email,
+                hashed_password=hashed_pw,
+                role="consumer",
+                full_name=fullname,
+                phone_number=phone,
+                is_active=True
+            )
+            db.add(db_user)
+            db.commit()
+            db.refresh(db_user)
+            processed_emails.add(email.lower())
+            success_count += 1
+        except Exception as e:
+            db.rollback()
+            errors.append(schemas.BulkImportError(row=row_num, email=email, error=f"Database error: {str(e)}"))
+            
+    return schemas.BulkImportResponse(
+        successful_count=success_count,
+        failed_count=len(errors),
+        errors=errors
+    )
+
