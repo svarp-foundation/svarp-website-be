@@ -24,7 +24,6 @@ def create_donation_order(
     donation: schemas.DonationCreate,
     db: Session = Depends(get_db)
 ):
-    # 1. Call CPP to create order
     headers = {
         "x-app-key": CPP_APP_KEY,
         "x-app-secret": CPP_APP_SECRET
