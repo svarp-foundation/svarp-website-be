@@ -144,7 +144,7 @@ def get_admin_stats(
 
 # 2. User Management
 @router.get("/users", response_model=List[schemas.User])
-def list_users(
+async def list_users(
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = None,
@@ -152,32 +152,62 @@ def list_users(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
-    query = db.query(models.User)
-    
-    if search:
-        query = query.filter(
-            (models.User.full_name.ilike(f"%{search}%")) | 
-            (models.User.email.ilike(f"%{search}%"))
+    try:
+        portal_users = await user_portal_client.list_users(skip=skip, limit=limit, search=search)
+    except Exception as e:
+        portal_users = []
+
+    result = []
+    for pu in portal_users:
+        user_id = str(pu.get("user_id"))
+        email = pu.get("email")
+        full_name = pu.get("full_name") or (email.split("@")[0].title() if email else "")
+        roles = pu.get("roles", [])
+        primary_role = "admin" if "admin" in roles else "consumer"
+        is_active = pu.get("is_active", True)
+
+        if status == "active" and not is_active:
+            continue
+        if status == "suspended" and is_active:
+            continue
+
+        # Sync/get local record for profile & membership data
+        db_user = crud.sync_user_from_portal(
+            db,
+            user_id=user_id,
+            email=email,
+            full_name=full_name,
+            role=primary_role,
         )
-    
-    if status == "active":
-        query = query.filter(models.User.is_active == True)
-    elif status == "suspended":
-        query = query.filter(models.User.is_active == False)
-        
-    return query.offset(skip).limit(limit).all()
+        db_user.is_active = is_active
+        db.commit()
+
+        result.append(db_user)
+
+    return result
 
 
 @router.get("/users/{user_id}", response_model=schemas.User)
-def get_user_details(
+async def get_user_details(
     user_id: str,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
 ):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        try:
+            pu = await user_portal_client.get_user(user_id=user_id)
+            if pu and pu.get("user_id"):
+                email = pu.get("email")
+                full_name = pu.get("full_name") or (email.split("@")[0].title() if email else "")
+                roles = pu.get("roles", [])
+                primary_role = "admin" if "admin" in roles else "consumer"
+                db_user = crud.sync_user_from_portal(db, user_id=str(pu["user_id"]), email=email, full_name=full_name, role=primary_role)
+        except Exception:
+            pass
+    if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+    return db_user
 
 
 @router.put("/users/{user_id}", response_model=schemas.User)
