@@ -3,12 +3,11 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from .. import crud, models, schemas
 from ..database import get_db
+from ..clients.user_portal_client import user_portal_client, ServiceError
 import os
 import requests
 import secrets
 import string
-from .auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
-from datetime import timedelta
 
 router = APIRouter(
     prefix="/donations",
@@ -72,7 +71,7 @@ def create_donation_order(
     )
 
 @router.post("/verify")
-def verify_donation_payment(
+async def verify_donation_payment(
     verify_data: schemas.PaymentVerify,
     db: Session = Depends(get_db)
 ):
@@ -110,46 +109,73 @@ def verify_donation_payment(
 
     updated_donation = crud.update_donation_status(db, donation.id, "success")
     
-    # 3. User Linking and Account Creation
+    # 3. User Linking and Account Creation via portal-user
     user = crud.get_user_by_email(db, email=updated_donation.email)
+    default_password = "svarp"
+    access_token = None
     
     if not user:
-        # Default password for accounts created during donation
-        random_password = "svarp"
-        
-        # Create a new user record
-        user_create_data = schemas.UserCreate(
-            email=updated_donation.email,
-            password=random_password,
-            role="consumer"
-        )
-        user = crud.create_user(db=db, user=user_create_data)
-        
-        # Optionally populate profile metadata if we have it
-        user_update_data = schemas.UserUpdate(
-            full_name=updated_donation.name,
-            phone_number=updated_donation.phone_number,
-            pan_card=updated_donation.pan_card
-        )
-        crud.update_user(db, user.id, user_update_data)
-        
-    # Link the donation to the user
-    updated_donation.user_id = user.id
-    
-    db.commit()
+        try:
+            # Create user on portal-user
+            portal_user = await user_portal_client.create_user(
+                email=updated_donation.email,
+                password=default_password,
+                full_name=updated_donation.name or updated_donation.email.split("@")[0].title(),
+            )
+            portal_user_id = str(portal_user.get("user_id"))
 
-    # 4. Generate Access Token for Auto-login
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
+            # Sync local record
+            user = crud.sync_user_from_portal(
+                db,
+                user_id=portal_user_id,
+                email=updated_donation.email,
+                full_name=updated_donation.name,
+                role="consumer",
+            )
+            # Store profile metadata locally
+            user_update_data = schemas.UserUpdate(
+                full_name=updated_donation.name,
+                phone_number=updated_donation.phone_number,
+                pan_card=updated_donation.pan_card
+            )
+            crud.update_user(db, user.id, user_update_data)
+        except ServiceError:
+            # If portal-user creation fails (e.g. email exists), try to fetch existing
+            try:
+                existing = await user_portal_client.get_user(email=updated_donation.email)
+                if existing and existing.get("user_id"):
+                    user = crud.sync_user_from_portal(
+                        db,
+                        user_id=str(existing.get("user_id")),
+                        email=updated_donation.email,
+                        full_name=updated_donation.name,
+                    )
+            except Exception:
+                pass
     
-    return {
+    # Link the donation to the user
+    if user:
+        updated_donation.user_id = user.id
+        db.commit()
+
+    # 4. Generate Access Token via portal-user login
+    try:
+        auth_res = await user_portal_client.login(
+            email=updated_donation.email,
+            password=default_password,
+        )
+        access_token = auth_res.get("access_token")
+    except ServiceError:
+        access_token = None
+    
+    result = {
         "status": "success", 
         "message": "Donation successful. Account linked.",
-        "access_token": access_token,
-        "token_type": "bearer"
     }
+    if access_token:
+        result["access_token"] = access_token
+        result["token_type"] = "bearer"
+    return result
 
 @router.get("/{donation_id}/certificate", response_class=HTMLResponse)
 def get_donation_certificate(donation_id: str, db: Session = Depends(get_db)):

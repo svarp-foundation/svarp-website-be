@@ -8,6 +8,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    full_name: Optional[str] = None
     role: Optional[str] = "consumer"
 
 class UserLogin(UserBase):
@@ -77,8 +78,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-class TokenData(BaseModel):
-    email: Optional[str] = None
+# TokenData removed — no local JWT decoding; tokens validated via portal-user
 
 # Membership Schemas
 class MembershipBase(BaseModel):

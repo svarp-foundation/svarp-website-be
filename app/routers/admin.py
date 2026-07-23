@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from .. import crud, schemas, models
 from ..database import get_db
 from .auth import get_current_admin
+from ..clients.user_portal_client import user_portal_client, ServiceError
 
 load_dotenv()
 
@@ -180,7 +181,7 @@ def get_user_details(
 
 
 @router.put("/users/{user_id}", response_model=schemas.User)
-def update_user_admin(
+async def update_user_admin(
     user_id: str,
     update: schemas.AdminUserUpdate,
     db: Session = Depends(get_db),
@@ -191,19 +192,30 @@ def update_user_admin(
         raise HTTPException(status_code=404, detail="User not found")
         
     update_data = update.dict(exclude_unset=True)
+    portal_update = {}
     for key, value in update_data.items():
         if key == "membership_plan_id" and value:
             pass
         else:
             setattr(db_user, key, value)
+            if key in ("full_name", "is_active"):
+                portal_update[key] = value
             
     db.commit()
     db.refresh(db_user)
+
+    # Sync shared fields to portal-user
+    if portal_update:
+        try:
+            await user_portal_client.update_user(user_id, portal_update)
+        except ServiceError:
+            pass  # Non-critical: local update succeeded
+
     return db_user
 
 
 @router.patch("/users/{user_id}/status")
-def toggle_user_status(
+async def toggle_user_status(
     user_id: str,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin)
@@ -214,6 +226,13 @@ def toggle_user_status(
     
     db_user.is_active = not db_user.is_active
     db.commit()
+
+    # Sync to portal-user
+    try:
+        await user_portal_client.update_user(user_id, {"is_active": db_user.is_active})
+    except ServiceError:
+        pass
+
     return {"status": "success", "is_active": db_user.is_active}
 
 
@@ -366,6 +385,7 @@ async def bulk_import_users(
 ):
     """
     Import users in bulk via a CSV file.
+    Creates users on portal-user first, then syncs local profile records.
     All imported users will have their role set to 'consumer' by default.
     Skipped rows are returned with detailed error messages.
     """
@@ -457,23 +477,34 @@ async def bulk_import_users(
             continue
             
         try:
-            hashed_pw = crud.get_password_hash(password)
-            db_user = models.User(
+            # Create user on portal-user first
+            portal_user = await user_portal_client.create_user(
                 email=email,
-                hashed_password=hashed_pw,
-                role="consumer",
-                full_name=fullname,
-                phone_number=phone,
-                is_active=True
+                password=password,
+                full_name=fullname or email.split("@")[0].title(),
             )
-            db.add(db_user)
-            db.commit()
-            db.refresh(db_user)
+            portal_user_id = str(portal_user.get("user_id"))
+
+            # Sync local profile record
+            db_user = crud.sync_user_from_portal(
+                db,
+                user_id=portal_user_id,
+                email=email,
+                full_name=fullname,
+                role="consumer",
+            )
+            # Store phone locally if provided
+            if phone:
+                db_user.phone_number = phone
+                db.commit()
+
             processed_emails.add(email.lower())
             success_count += 1
+        except ServiceError as se:
+            errors.append(schemas.BulkImportError(row=row_num, email=email, error=f"Portal error: {se.detail}"))
         except Exception as e:
             db.rollback()
-            errors.append(schemas.BulkImportError(row=row_num, email=email, error=f"Database error: {str(e)}"))
+            errors.append(schemas.BulkImportError(row=row_num, email=email, error=f"Error: {str(e)}"))
             
     return schemas.BulkImportResponse(
         successful_count=success_count,

@@ -18,7 +18,7 @@ if not os.path.exists(UPLOAD_DIR):
 
 # Public Endpoints
 @router.get("/", response_model=List[schemas.Job])
-def list_active_jobs(
+async def list_active_jobs(
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
@@ -26,13 +26,13 @@ def list_active_jobs(
     if authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ")[1]
         try:
-            from jose import jwt
-            from .auth import SECRET_KEY, ALGORITHM
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            email: str = payload.get("sub")
-            if email:
-                user = crud.get_user_by_email(db, email=email)
-                if user and user.role == "admin":
+            from ..clients.user_portal_client import user_portal_client
+            validation = await user_portal_client.validate_token(token)
+            if validation.get("is_valid"):
+                user_id = str(validation.get("user_id"))
+                user_info = await user_portal_client.get_user(user_id=user_id)
+                roles = user_info.get("roles", [])
+                if "admin" in roles:
                     active_only = False
         except Exception:
             pass
