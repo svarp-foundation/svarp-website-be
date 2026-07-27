@@ -62,7 +62,11 @@ def verify_user_by_email(
     # Check all required fields for payment
     has_full_name = bool(user.full_name and user.full_name.strip())
     has_phone_number = bool(user.phone_number and user.phone_number.strip())
-    has_pan_card = bool(user.pan_card and user.pan_card.strip())
+    has_pan_card = bool(
+        (user.pan_card and user.pan_card.strip()) or
+        (user.government_id_number and user.government_id_number.strip()) or
+        (user.adhaar_card and user.adhaar_card.strip())
+    )
     has_address = bool(user.address and user.address.strip())
     has_city = bool(user.city and user.city.strip())
     has_state = bool(user.state and user.state.strip())
